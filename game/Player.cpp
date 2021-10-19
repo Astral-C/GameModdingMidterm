@@ -1342,6 +1342,30 @@ idPlayer::idPlayer() {
 	teamAmmoRegenPending	= false;
 	teamDoubler			= NULL;		
 	teamDoublerPending		= false;
+
+	wvPlayerClass = LIGHT;
+	wvSpeedMult = 25.0f;
+	wvJumpMult = 10.0f;
+}
+
+void idPlayer::ChangeClass(WavePlayerClass newClass) {
+	switch (newClass) {
+	case MEDIC:
+		wvPlayerClass = MEDIC;
+		wvSpeedMult = 50.0f;
+		wvJumpMult = 2.5f;
+		break;
+	case LIGHT:
+		wvPlayerClass = LIGHT;
+		wvSpeedMult = 100.0f;
+		wvJumpMult = 5.0f;
+		break;
+	case HEAVY:
+		wvPlayerClass = HEAVY;
+		wvSpeedMult = 0.7f;
+		wvJumpMult = 0.7;
+		break;
+	}
 }
 
 /*
@@ -1766,6 +1790,8 @@ void idPlayer::Init( void ) {
 		teamDoublerPending = false;
 		teamDoubler = PlayEffect( "fx_doubler", renderEntity.origin, renderEntity.axis, true );
 	}
+
+	wvPlayerClass = MEDIC;
 }
 
 /*
@@ -8965,7 +8991,7 @@ void idPlayer::Move( void ) {
 
 	// set physics variables
 	physicsObj.SetMaxStepHeight( pm_stepsize.GetFloat() );
-	physicsObj.SetMaxJumpHeight( pm_jumpheight.GetFloat() );
+	physicsObj.SetMaxJumpHeight( pm_jumpheight.GetFloat()*wvJumpMult );
 
 	if ( noclip ) {
 		physicsObj.SetContents( 0 );
@@ -9056,7 +9082,7 @@ void idPlayer::Move( void ) {
  			if ( vel.ToVec2().LengthSqr() < 0.1f ) {
  				vel.ToVec2() = physicsObj.GetOrigin().ToVec2() - groundEnt->GetPhysics()->GetAbsBounds().GetCenter().ToVec2();
  				vel.ToVec2().NormalizeFast();
- 				vel.ToVec2() *= pm_speed.GetFloat();
+ 				vel.ToVec2() *= (pm_speed.GetFloat() * wvSpeedMult);
  			} else {
  				// give em a push in the direction they're going
  				vel *= 1.1f;
@@ -9069,7 +9095,7 @@ void idPlayer::Move( void ) {
 		loggedAccel_t	*acc = &loggedAccel[currentLoggedAccel&(NUM_LOGGED_ACCELS-1)];
 		currentLoggedAccel++;
 		acc->time = gameLocal.time;
-		acc->dir[2] = 200;
+		acc->dir[2] = 200*wvJumpMult;
 		acc->dir[0] = acc->dir[1] = 0;
 	}
 

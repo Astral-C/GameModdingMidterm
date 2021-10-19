@@ -26,7 +26,7 @@
 // RAVEN END
 
 #ifdef _WIN32
-#include "TypeInfo.h"
+#include <typeinfo>
 #else
 #include "NoGameTypeInfo.h"
 #endif
@@ -171,7 +171,7 @@ void Cmd_ListSpawnArgs_f( const idCmdArgs &args ) {
 
 	for ( i = 0; i < ent->spawnArgs.GetNumKeyVals(); i++ ) {
 		const idKeyValue *kv = ent->spawnArgs.GetKeyVal( i );
-		gameLocal.Printf( "\"%s\"  "S_COLOR_WHITE"\"%s\"\n", kv->GetKey().c_str(), kv->GetValue().c_str() );
+		gameLocal.Printf( "\"%s\"  " S_COLOR_WHITE "\"%s\"\n", kv->GetKey().c_str(), kv->GetValue().c_str() );
 	}
 }
 
@@ -3038,6 +3038,22 @@ void Cmd_ClientOverflowReliable_f( const idCmdArgs& args ) {
 }
 #endif
 
+void Cmd_PrintClass(const idCmdArgs& args) {
+	gameLocal.Printf("Player Class is %d\n", gameLocal.GetLocalPlayer()->wvPlayerClass);
+}
+
+void Cmd_SetMedic(const idCmdArgs& args) {
+	gameLocal.GetLocalPlayer()->ChangeClass(MEDIC);
+}
+
+void Cmd_SetLight(const idCmdArgs& args) {
+	gameLocal.GetLocalPlayer()->ChangeClass(LIGHT);
+}
+
+void Cmd_SetHeavy(const idCmdArgs& args) {
+	gameLocal.GetLocalPlayer()->ChangeClass(HEAVY);
+}
+
 /*
 =================
 idGameLocal::InitConsoleCommands
@@ -3232,7 +3248,10 @@ void idGameLocal::InitConsoleCommands( void ) {
 	cmdSystem->AddCommand( "buyMenu",				Cmd_ToggleBuyMenu_f,		CMD_FL_GAME,				"Toggle buy menu (if in a buy zone and the game type supports it)" );
 	cmdSystem->AddCommand( "buy",					Cmd_BuyItem_f,				CMD_FL_GAME,				"Buy an item (if in a buy zone and the game type supports it)" );
 // RITUAL END
-
+	cmdSystem->AddCommand("printClass", Cmd_PrintClass, CMD_FL_GAME, "Print the class of the player for wave mode");
+	cmdSystem->AddCommand("setClassMedic", Cmd_SetMedic, CMD_FL_GAME, "set wave player class to medic");
+	cmdSystem->AddCommand("setClassLight", Cmd_SetLight, CMD_FL_GAME, "set wave player class to light");
+	cmdSystem->AddCommand("setClassHeavy", Cmd_SetHeavy, CMD_FL_GAME, "set wave player class to heavy");
 }
 
 /*

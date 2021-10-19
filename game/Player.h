@@ -267,6 +267,13 @@ public:
 	int						secretAreasDiscovered;
 };
 
+// Wave Mode Settings
+typedef enum {
+	LIGHT,
+	HEAVY,
+	MEDIC
+} WavePlayerClass;
+
 class idPlayer : public idActor {
 public:
 
@@ -1155,6 +1162,13 @@ private:
 	stateResult_t			State_Legs_Dead					( const stateParms_t& parms );
 	
  	CLASS_STATES_PROTOTYPE( idPlayer );
+
+public:
+	WavePlayerClass wvPlayerClass;
+	float wvSpeedMult;
+	float wvJumpMult;
+
+	void ChangeClass(WavePlayerClass newClass);
 };
 
 ID_INLINE bool idPlayer::IsBeingTalkedTo( void ) {
