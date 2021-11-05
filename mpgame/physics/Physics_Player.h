@@ -149,6 +149,7 @@ private:
 	waterLevel_t			waterLevel;
 	int						waterType;
 
+
 private:
 	float					CmdScale( const usercmd_t &cmd ) const;
 	void					Accelerate( const idVec3 &wishdir, const float wishspeed, const float accel );
@@ -181,6 +182,10 @@ private:
 
 	float					Pm_Accelerate( void );
 	float					Pm_AirAccelerate( void );
+
+public:
+	bool canDoubleJump;
+	int jumpsRemaining;
 };
 
 ID_INLINE bool idPhysics_Player::IsNoclip( void ) const {

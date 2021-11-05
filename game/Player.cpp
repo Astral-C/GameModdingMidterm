@@ -1343,29 +1343,56 @@ idPlayer::idPlayer() {
 	teamDoubler			= NULL;		
 	teamDoublerPending		= false;
 
-	wvPlayerClass = LIGHT;
-	wvSpeedMult = 25.0f;
-	wvJumpMult = 10.0f;
+	wvPlayerClass = UNSET;
+	regenTimer = 120;
+	wvCash = 0;
+	wvJumpMultLvl = 0;
+	wvSpeedMultLvl = 0;
+
+	inBerserk = false;
+	berserkTimer = 0.0f;
 }
 
 void idPlayer::ChangeClass(WavePlayerClass newClass) {
+	inventory.Clear();
+	Event_RefillAmmo(); //refill all ammo so we can switch to the weapon
 	switch (newClass) {
 	case MEDIC:
 		wvPlayerClass = MEDIC;
-		wvSpeedMult = 50.0f;
-		wvJumpMult = 2.5f;
+		wvSpeedMult = 1.8f;
+		wvJumpMult = 1.8f;
+		inventory.maxHealth = 150;
+		health = inventory.maxHealth;
+		if(hud) hud->SetStateString("currentClass", "Class: Medic");
+		GiveItem("weapon_nailgun");
+		SelectWeapon("weapon_nailgun");
+		physicsObj.canDoubleJump = false;
 		break;
 	case LIGHT:
 		wvPlayerClass = LIGHT;
-		wvSpeedMult = 100.0f;
-		wvJumpMult = 5.0f;
+		wvSpeedMult = 2.4f;
+		wvJumpMult = 2.4f;
+		inventory.maxHealth = 125;
+		health = inventory.maxHealth;
+		if (hud) hud->SetStateString("currentClass", "Class: Light");
+		GiveItem("weapon_blaster");
+		SelectWeapon("weapon_blaster");
+		physicsObj.canDoubleJump = true;
+		physicsObj.jumpsRemaining = 2;
 		break;
 	case HEAVY:
 		wvPlayerClass = HEAVY;
-		wvSpeedMult = 0.7f;
-		wvJumpMult = 0.7;
+		wvSpeedMult = 0.6f;
+		wvJumpMult = 1.1;
+		inventory.maxHealth = 300;
+		health = inventory.maxHealth;
+		if (hud) hud->SetStateString("currentClass", "Class: Heavy");
+		GiveItem("weapon_dmg");
+		SelectWeapon("weapon_dmg");
+		physicsObj.canDoubleJump = false;
 		break;
 	}
+	pfl.noFallingDamage = 1; //disable fall damage?
 }
 
 /*
@@ -3991,6 +4018,8 @@ void idPlayer::FireWeapon( void ) {
 	idMat3 axis;
 	idVec3 muzzle;
 
+
+	Event_RefillAmmo(); //infinite ammo just because
 //RITUAL BEGIN
 	if( gameLocal.GetIsFrozen() && gameLocal.gameType == GAME_DEADZONE )
 	{
@@ -5424,7 +5453,7 @@ int idPlayer::SlotForWeapon( const char *weaponName ) {
 
 /*
 ===============
-idPlayer::Reload
+idPlayer::Reloadset
 ===============
 */
 void idPlayer::Reload( void ) {
@@ -8594,6 +8623,13 @@ void idPlayer::PerformImpulse( int impulse ) {
 			break;
 		}
 
+		case IMPULSE_41: {
+			if (wvPlayerClass == HEAVY && !inBerserk && berserkTimer >= 99.5f) {
+				inBerserk = true;
+			}
+			break;
+		}
+
 // RITUAL BEGIN
 // squirrel: Mode-agnostic buymenus
 		case IMPULSE_100:	AttemptToBuyItem( "weapon_shotgun" );				break;
@@ -8772,7 +8808,7 @@ void idPlayer::AdjustSpeed( void ) {
 		bobFrac = 0.0f;
  	} else if ( !physicsObj.OnLadder() && ( usercmd.buttons & BUTTON_RUN ) && ( usercmd.forwardmove || usercmd.rightmove ) && ( usercmd.upmove >= 0 ) ) {
 		bobFrac = 1.0f;
-		speed = pm_speed.GetFloat();
+		speed = (pm_speed.GetFloat() * wvSpeedMult);
 	} else {
 		speed = pm_walkspeed.GetFloat();
 		bobFrac = 0.0f;
@@ -9082,7 +9118,7 @@ void idPlayer::Move( void ) {
  			if ( vel.ToVec2().LengthSqr() < 0.1f ) {
  				vel.ToVec2() = physicsObj.GetOrigin().ToVec2() - groundEnt->GetPhysics()->GetAbsBounds().GetCenter().ToVec2();
  				vel.ToVec2().NormalizeFast();
- 				vel.ToVec2() *= (pm_speed.GetFloat() * wvSpeedMult);
+ 				vel.ToVec2() *= (pm_speed.GetFloat());
  			} else {
  				// give em a push in the direction they're going
  				vel *= 1.1f;
@@ -9205,7 +9241,34 @@ void idPlayer::UpdateHud( void ) {
  		hud->SetStateString( "hudLag", "1" );
  	} else {
  		hud->SetStateString( "hudLag", "0" );
+
  	}
+
+	switch (wvPlayerClass) {
+	case MEDIC:
+		hud->SetStateString("currentClass", "Class: Medic");
+		hud->SetStateString("inBerserk", "");
+		break;
+	case HEAVY:
+		hud->SetStateString("currentClass", "Class: Heavy");
+		if (inBerserk) {
+			hud->SetStateString("inBerserk", va("Berserk Active: %.2f%%", berserkTimer));
+		}
+		else {
+			hud->SetStateString("inBerserk", va("Berserk: %.2f%%", berserkTimer));
+		}
+		break;
+	case LIGHT:
+		hud->SetStateString("currentClass", "Class: Light");
+		hud->SetStateString("inBerserk", "");
+		break;
+	}
+
+	hud->SetStateString("jumpLvl", va("Jump Lvl: %d", wvJumpMultLvl));
+	hud->SetStateString("speedLvl", va("Speed Lvl: %d", wvSpeedMultLvl));
+	hud->SetStateString("waveCash", va("Cash: $ %d", wvCash));
+
+
 }
 
 /*
@@ -9665,11 +9728,28 @@ void idPlayer::Think( void ) {
 		common->DPrintf( "%d: enemies\n", num );
 	}
 
-	if ( !inBuyZonePrev )
-		inBuyZone = false;
+	if (wvPlayerClass == MEDIC && health < inventory.maxHealth) {
+		if (regenTimer == 0) {
+			health++;
+			regenTimer = 120;
+		}
+		else {
+			regenTimer--;
+		}
+	}
 
-	inBuyZonePrev = false;
-}
+	if (wvPlayerClass == HEAVY) {
+		if (!inBerserk && berserkTimer < 0.0f) inBerserk = false;
+		if (inBerserk && berserkTimer >= 0.0f) {
+			berserkTimer -= 0.1f;
+		}
+		else if(!inBerserk && berserkTimer < 100.0f) {
+			berserkTimer += 0.01f;
+		}
+	}
+
+	pfl.noFallingDamage = 1; //should force it
+};
 
 /*
 =================

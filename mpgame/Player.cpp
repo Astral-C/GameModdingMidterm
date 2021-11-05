@@ -11499,6 +11499,7 @@ void idPlayer::Event_SelectWeapon( const char *weaponName ) {
 		return;
 	}
 
+
 	hiddenWeapon = false;
 	idealWeapon = weaponNum;
 

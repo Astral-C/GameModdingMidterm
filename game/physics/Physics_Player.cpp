@@ -637,6 +637,7 @@ void idPhysics_Player::AirMove( void ) {
 	float		wishspeed;
 	float		scale;
 
+
 // RAVEN BEGIN
 // bdube: crouch time
 	// if the player isnt pressing crouch and heading down then accumulate slide time
@@ -674,6 +675,17 @@ void idPhysics_Player::AirMove( void ) {
 		current.velocity.ProjectOntoPlane( groundTrace.c.normal, OVERCLIP );
 	}
 
+	if (canDoubleJump) {
+		if (jumpTimer == 0) {
+			if (idPhysics_Player::CheckJump()) {
+				jumpTimer = -1; //make it negative so we can't jump again until its properly reset
+			}
+		}
+		else if (jumpTimer > 0) {
+			jumpTimer--;
+		}
+	}
+
 	// NOTE: enable stair checking while moving through the air in multiplayer to allow bunny hopping onto stairs
 	idPhysics_Player::SlideMove( true, gameLocal.isMultiplayer, false, false );
 }
@@ -691,6 +703,12 @@ void idPhysics_Player::WalkMove( void ) {
 	float		accelerate;
 	idVec3		oldVelocity, vel;
 	float		oldVel, newVel;
+
+	if (jumpsRemaining == 0) {
+		jumpsRemaining = 2;
+	}
+
+	jumpTimer = 5;
 
 	if ( waterLevel > WATERLEVEL_WAIST && ( viewForward * groundTrace.c.normal ) > 0.0f ) {
 		// begin swimming
@@ -1271,21 +1289,22 @@ void idPhysics_Player::CheckLadder( void ) {
 idPhysics_Player::CheckJump
 =============
 */
-bool idPhysics_Player::CheckJump( void ) {
+bool idPhysics_Player::CheckJump(void) {
 	idVec3 addVelocity;
 
-	if ( command.upmove < 10 ) {
+	if (command.upmove < 10) {
 		// not holding jump
 		return false;
 	}
 
 	// must wait for jump to be released
-	if ( current.movementFlags & PMF_JUMP_HELD ) {
+	if (current.movementFlags & PMF_JUMP_HELD) {
 		return false;
 	}
 
+	
 	// don't jump if we can't stand up
-	if ( current.movementFlags & PMF_DUCKED ) {
+	if (current.movementFlags & PMF_DUCKED) {
 		return false;
 	}
 
@@ -1682,6 +1701,8 @@ idPhysics_Player::idPhysics_Player( void ) {
 	ladderNormal.Zero();
 	waterLevel = WATERLEVEL_NONE;
 	waterType = 0;
+	canDoubleJump = false;
+	jumpsRemaining = 0;
 }
 
 /*

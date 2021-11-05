@@ -5,7 +5,7 @@
 
 #ifndef __GAME_PLAYER_H__
 #define __GAME_PLAYER_H__
-
+#include "spawner.h"
 /*
 ===============================================================================
 
@@ -271,7 +271,8 @@ public:
 typedef enum {
 	LIGHT,
 	HEAVY,
-	MEDIC
+	MEDIC,
+	UNSET,
 } WavePlayerClass;
 
 class idPlayer : public idActor {
@@ -1164,9 +1165,29 @@ private:
  	CLASS_STATES_PROTOTYPE( idPlayer );
 
 public:
+	//class an
 	WavePlayerClass wvPlayerClass;
+
+	//base stat multipliers
 	float wvSpeedMult;
 	float wvJumpMult;
+	
+	//health regeneration timer for medic class
+	int regenTimer;
+	
+	//cash for wave mode, seperate from regular cash for ease of integration
+	int wvCash;
+
+	//stat upgrade levels
+	int wvJumpMultLvl;
+	int wvSpeedMultLvl;
+
+	//timer and check for heavy class' berserk mode
+	float berserkTimer;
+	bool inBerserk;
+	
+	//manages wave spawning of enemies
+	rvSpawner waveManager;
 
 	void ChangeClass(WavePlayerClass newClass);
 };

@@ -3054,6 +3054,7 @@ void Cmd_SetHeavy(const idCmdArgs& args) {
 	gameLocal.GetLocalPlayer()->ChangeClass(HEAVY);
 }
 
+
 /*
 =================
 idGameLocal::InitConsoleCommands

@@ -691,6 +691,11 @@ void idPhysics_Player::AirMove( void ) {
 	float		wishspeed;
 	float		scale;
 
+	if (canDoubleJump) {
+		if (jumpsRemaining > 0) {
+			idPhysics_Player::CheckJump();
+		}
+	}
 	// if the player isnt pressing crouch and heading down then accumulate slide time
 	if ( command.upmove >= 0 && current.velocity * gravityNormal > 0 ) {	
 		current.crouchSlideTime = idMath::ClampInt( 0, 2000, current.crouchSlideTime + framemsec * 2 ); 
@@ -1099,6 +1104,9 @@ void idPhysics_Player::CheckGround( bool checkStuck ) {
 	groundPlane = true;
 	walking = true;
 
+	//reset the jumps
+	jumpsRemaining = 2;
+
 	// hitting solid ground will end a waterjump
 	if ( current.movementFlags & PMF_TIME_WATERJUMP ) {
 		current.movementFlags &= ~( PMF_TIME_WATERJUMP | PMF_TIME_LAND );
@@ -1106,7 +1114,7 @@ void idPhysics_Player::CheckGround( bool checkStuck ) {
 	}
 
 	// if the player didn't have ground contacts the previous frame
-	if ( !hadGroundContacts ) {
+	if (!hadGroundContacts && !canDoubleJump) {
 		// don't do landing time if we were just going down a slope
 		if ( (current.velocity * -gravityNormal) < -200.0f ) {
 			// don't allow another jump for a little while
@@ -1269,7 +1277,7 @@ bool idPhysics_Player::CheckJump( void ) {
 	// CheckJump only called from WalkMove, therefore with walking == true
 	// in MP game we always have groundPlane == walking
 	// (this mostly matters to velocity clipping against ground when the jump is ok'ed)
-	assert( groundPlane );
+	//assert( groundPlane );
 
 	if ( command.upmove < 10 ) {
 		// not holding jump
@@ -1277,7 +1285,7 @@ bool idPhysics_Player::CheckJump( void ) {
 	}
 
 	// must wait for jump to be released
-	if ( current.movementFlags & PMF_JUMP_HELD ) {
+	if ( current.movementFlags & PMF_JUMP_HELD  ) {
 		return false;
 	}
 
@@ -1288,8 +1296,10 @@ bool idPhysics_Player::CheckJump( void ) {
 
 	// start by setting up the normal ground slide velocity
 	// this will make sure that when we add the jump velocity we actually get off of the ground plane
-	if ( current.velocity * groundTrace.c.normal < 0.0f ) {
-		current.velocity = AdjustVertically( groundTrace.c.normal, current.velocity );
+	if (groundPlane) { //only do this on the ground
+		if (current.velocity * groundTrace.c.normal < 0.0f) {
+			current.velocity = AdjustVertically(groundTrace.c.normal, current.velocity);
+		}
 	}
 	
 	addVelocity = 2.0f * maxJumpHeight * -gravityVector;
@@ -1666,6 +1676,8 @@ idPhysics_Player::idPhysics_Player( void ) {
 	ladderNormal.Zero();
 	waterLevel = WATERLEVEL_NONE;
 	waterType = 0;
+	canDoubleJump = false;
+	jumpsRemaining = 0;
 }
 
 /*
