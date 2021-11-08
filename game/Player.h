@@ -1186,10 +1186,16 @@ public:
 	float berserkTimer;
 	bool inBerserk;
 	
-	//manages wave spawning of enemies
-	rvSpawner waveManager;
+	//wave management
+	bool wvReady;
+	int wvEnemiesRemaining;
+	int wvCurrentWave; //use this to calculate enemy count with simple current wave * 10
+	idList<idEntity*> wvEnemies;
 
 	void ChangeClass(WavePlayerClass newClass);
+	void spawn_entity();
+	void UpdateWave();
+	void ReadyUp();
 };
 
 ID_INLINE bool idPlayer::IsBeingTalkedTo( void ) {

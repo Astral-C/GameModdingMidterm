@@ -1351,6 +1351,10 @@ idPlayer::idPlayer() {
 
 	inBerserk = false;
 	berserkTimer = 0.0f;
+
+	wvReady = false;
+	wvCurrentWave = 1;
+	wvEnemiesRemaining = 10;
 }
 
 void idPlayer::ChangeClass(WavePlayerClass newClass) {
@@ -1393,6 +1397,43 @@ void idPlayer::ChangeClass(WavePlayerClass newClass) {
 		break;
 	}
 	pfl.noFallingDamage = 1; //disable fall damage?
+}
+
+void idPlayer::ReadyUp() {
+	wvReady = true;
+	wvEnemiesRemaining = wvCurrentWave * 2;
+
+	idVec3 org;
+	idDict dict;
+	float yaw = viewAngles.yaw;
+
+	dict.Set("classname", "monster_grunt");
+	for (int i = 0; i < wvEnemiesRemaining; i++) {
+		dict.Set("angle", va("%f", yaw));
+
+		org = GetPhysics()->GetOrigin() + idAngles(0, yaw, 0).ToForward() * (80 + (i * 20)) + idVec3(0, 0, 1);
+		dict.Set("origin", org.ToString());
+
+		idEntity* newEnt = NULL;
+		gameLocal.SpawnEntityDef(dict, &newEnt);
+
+		wvEnemies.Append(newEnt);
+	}
+}
+
+void idPlayer::UpdateWave() {
+	for (int i = 0; i < wvEnemies.Num(); i++) {
+		if (wvEnemies[i] && wvEnemies[i]->health <= 0) {
+			idEntity* ded = wvEnemies[i];
+			wvEnemies.Remove(ded);
+			delete ded; //doesn't this happen automatically?
+		}
+	}
+	
+	if(wvReady && wvEnemies.Num() == 0) {
+		wvReady = false;
+		wvCurrentWave++;
+	}
 }
 
 /*
@@ -1818,7 +1859,6 @@ void idPlayer::Init( void ) {
 		teamDoubler = PlayEffect( "fx_doubler", renderEntity.origin, renderEntity.axis, true );
 	}
 
-	wvPlayerClass = MEDIC;
 }
 
 /*
@@ -4019,7 +4059,7 @@ void idPlayer::FireWeapon( void ) {
 	idVec3 muzzle;
 
 
-	Event_RefillAmmo(); //infinite ammo just because
+	//Event_RefillAmmo(); //infinite ammo just because
 //RITUAL BEGIN
 	if( gameLocal.GetIsFrozen() && gameLocal.gameType == GAME_DEADZONE )
 	{
@@ -4137,9 +4177,10 @@ bool idPlayer::Give( const char *statname, const char *value, bool dropped ) {
 	}
 
 	if ( !idStr::Icmp( statname, "health" ) ) {
-		if ( health >= boundaryHealth ) {
-			return false;
-		}
+		wvCash += 80;
+		//if ( health >= boundaryHealth ) {
+		//	return false;
+		//}
  		amount = atoi( value );
  		if ( amount ) {
  			health += amount;
@@ -4149,9 +4190,9 @@ bool idPlayer::Give( const char *statname, const char *value, bool dropped ) {
 		}
 	} else if ( !idStr::Icmp( statname, "bonushealth" ) ) {
 		// allow health over max health
-		if ( health >= boundaryHealth * 2 ) {
-			return false;
-		}
+		//if ( health >= boundaryHealth * 2 ) {
+		//	return false;
+		//}
 		amount = atoi( value );
  		if ( amount ) {
  			health += amount;
@@ -4161,15 +4202,15 @@ bool idPlayer::Give( const char *statname, const char *value, bool dropped ) {
 		}
 		nextHealthPulse = gameLocal.time + HEALTH_PULSE;
 	} else if ( !idStr::Icmp( statname, "armor" ) ) {
-		if ( inventory.armor >= boundaryArmor ) {
-			return false;
-		}
+		//if ( inventory.armor >= boundaryArmor ) {
+		//	return false;
+		//}
 		amount = atoi( value );
 
 		inventory.armor += amount;
-		if ( inventory.armor > boundaryArmor ) {
-			 inventory.armor = boundaryArmor;
-		}
+		//if ( inventory.armor > boundaryArmor ) {
+		//	 inventory.armor = boundaryArmor;
+		//}
 		nextArmorPulse = gameLocal.time + ARMOR_PULSE;
 	} else if ( !idStr::Icmp( statname, "air" ) ) {
 		if ( airTics >= pm_airTics.GetInteger() ) {
@@ -8630,6 +8671,50 @@ void idPlayer::PerformImpulse( int impulse ) {
 			break;
 		}
 
+		case IMPULSE_42: {
+			if (!wvReady && wvPlayerClass != UNSET) {
+				ReadyUp();
+			}
+			break;
+		}
+
+		case IMPULSE_43: {
+			if (wvPlayerClass == UNSET) {
+				ChangeClass(MEDIC);
+			}
+			break;
+		}
+
+		case IMPULSE_44: {
+			if (wvPlayerClass == UNSET) {
+				ChangeClass(HEAVY);
+			}
+			break;
+		}
+
+		case IMPULSE_45: {
+			if (wvPlayerClass == UNSET) {
+				ChangeClass(LIGHT);
+			}
+			break;
+		}
+
+		case IMPULSE_46: {
+			if (wvCash >= wvJumpMultLvl * 150) {
+				wvCash -= (wvJumpMultLvl * 150);
+				wvJumpMultLvl++;
+			}
+			break;
+		}
+
+		case IMPULSE_47: {
+			if (wvCash >= wvSpeedMultLvl * 150) {
+				wvCash -= (wvSpeedMultLvl * 150);
+				wvSpeedMultLvl++;
+			}
+			break;
+		}
+
 // RITUAL BEGIN
 // squirrel: Mode-agnostic buymenus
 		case IMPULSE_100:	AttemptToBuyItem( "weapon_shotgun" );				break;
@@ -8808,7 +8893,7 @@ void idPlayer::AdjustSpeed( void ) {
 		bobFrac = 0.0f;
  	} else if ( !physicsObj.OnLadder() && ( usercmd.buttons & BUTTON_RUN ) && ( usercmd.forwardmove || usercmd.rightmove ) && ( usercmd.upmove >= 0 ) ) {
 		bobFrac = 1.0f;
-		speed = (pm_speed.GetFloat() * wvSpeedMult);
+		speed = (pm_speed.GetFloat() * wvSpeedMult * (inBerserk ? 2.0f : 1.0f) * (1+.1*wvSpeedMultLvl));
 	} else {
 		speed = pm_walkspeed.GetFloat();
 		bobFrac = 0.0f;
@@ -9027,7 +9112,7 @@ void idPlayer::Move( void ) {
 
 	// set physics variables
 	physicsObj.SetMaxStepHeight( pm_stepsize.GetFloat() );
-	physicsObj.SetMaxJumpHeight( pm_jumpheight.GetFloat()*wvJumpMult );
+	physicsObj.SetMaxJumpHeight( pm_jumpheight.GetFloat() * wvJumpMult * (inBerserk ? 2.0f : 1.0f) * (1 + .1 * wvSpeedMultLvl));
 
 	if ( noclip ) {
 		physicsObj.SetContents( 0 );
@@ -9264,10 +9349,24 @@ void idPlayer::UpdateHud( void ) {
 		break;
 	}
 
-	hud->SetStateString("jumpLvl", va("Jump Lvl: %d", wvJumpMultLvl));
-	hud->SetStateString("speedLvl", va("Speed Lvl: %d", wvSpeedMultLvl));
+	hud->SetStateString("jumpLvl", va("Jump %d (Press N $ %d)", wvJumpMultLvl, wvJumpMultLvl*150));
+	hud->SetStateString("speedLvl", va("Speed %d (Press M $ %d)", wvSpeedMultLvl, wvSpeedMultLvl*150));
 	hud->SetStateString("waveCash", va("Cash: $ %d", wvCash));
+	hud->SetStateString("waveCount", va("Current Wave: %d", wvCurrentWave));
 
+	if (wvPlayerClass == UNSET) {
+		hud->SetStateString("selectAClass", "Select a Class (I - Medic, O - Heavy, P - Light)");
+	}
+	else {
+		hud->SetStateString("selectAClass", "");
+	}
+
+	if (!wvReady && wvPlayerClass != UNSET) {
+		hud->SetStateString("readyUp", "Press G To Begin the Next Wave!");
+	}
+	else {
+		hud->SetStateString("readyUp", "");
+	}
 
 }
 
@@ -9389,9 +9488,14 @@ void idPlayer::Think( void ) {
 		}
 	}
 
+	if (wvReady) {
+		UpdateWave();
+	}
+
 	if ( !gameLocal.usercmds ) {
 		return;
 	}
+
 
 #ifdef _XENON
 	// change the crosshair if it's modified
@@ -9739,7 +9843,10 @@ void idPlayer::Think( void ) {
 	}
 
 	if (wvPlayerClass == HEAVY) {
-		if (!inBerserk && berserkTimer < 0.0f) inBerserk = false;
+		if (inBerserk && berserkTimer < 0.0f) {
+			inBerserk = false;
+			berserkTimer = 0.0f;
+		}
 		if (inBerserk && berserkTimer >= 0.0f) {
 			berserkTimer -= 0.1f;
 		}

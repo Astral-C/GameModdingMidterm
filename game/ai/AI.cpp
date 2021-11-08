@@ -3684,7 +3684,41 @@ void idAI::OnDeath( void ){
 
 	ExecScriptFunction( funcs.death );
 
-/* DONT DROP ANYTHING FOR NOW
+	//gameLocal.GetLocalPlayer()->wvCash += 100;
+	float rVal = gameLocal.random.RandomInt(100);
+	switch (gameLocal.GetLocalPlayer()->wvPlayerClass) {
+	case MEDIC:
+		//drop medic item
+		if (rVal < 90) {
+			spawnArgs.Set("def_dropsItem1", "item_health_small_moveable");
+		}
+		else {
+			spawnArgs.Set("def_dropsItem1", "item_armor_shard");
+		}
+		break;
+
+	case HEAVY:
+		//drop heavy item
+		if (rVal < 90) {
+			spawnArgs.Set("def_dropsItem1", "item_health_small_moveable");
+		}
+		else {
+			spawnArgs.Set("def_dropsItem1", "ammo_default");
+		}
+		break;
+
+	case LIGHT:
+		//drop light item
+		if (rVal < 90) {
+			spawnArgs.Set("def_dropsItem1", "item_health_small_moveable");
+		}
+		else {
+			spawnArgs.Set("def_dropsItem1", "item_armor_small");
+		}
+		break;
+	}
+	
+	/* DONT DROP ANYTHING FOR NOW
 	float rVal = gameLocal.random.RandomInt( 100 );
 
 	if( spawnArgs.GetFloat( "no_drops" ) >= 1.0 ){

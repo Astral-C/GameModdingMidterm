@@ -72,6 +72,14 @@ const int IMPULSE_28			= 28;			// vote yes
 const int IMPULSE_29			= 29;			// vote no
 const int IMPULSE_40			= 40;			// repeast last radio chatter
 const int IMPULSE_41			= 41;			// Enter Berserk Mode
+const int IMPULSE_42			= 42;			// Begin wave
+
+const int IMPULSE_43			= 43;			// Set Class Medic
+const int IMPULSE_44			= 44;			// Set Class Heavy
+const int IMPULSE_45			= 45;			// Set Class Light
+
+const int IMPULSE_46 = 46;			// Upgrade Jump
+const int IMPULSE_47 = 47;			// Upgrade Speed
 
 // RAVEN BEGIN
 // bdube: added flashlight
