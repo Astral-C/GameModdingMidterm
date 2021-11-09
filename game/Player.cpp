@@ -1346,15 +1346,17 @@ idPlayer::idPlayer() {
 	wvPlayerClass = UNSET;
 	regenTimer = 120;
 	wvCash = 0;
-	wvJumpMultLvl = 0;
-	wvSpeedMultLvl = 0;
+	wvSpeedMult = 0;
+	wvJumpMult = 0;
+	wvJumpMultLvl = 1;
+	wvSpeedMultLvl = 1;
 
 	inBerserk = false;
 	berserkTimer = 0.0f;
 
 	wvReady = false;
 	wvCurrentWave = 1;
-	wvEnemiesRemaining = 10;
+	wvEnemiesRemaining = 0;
 }
 
 void idPlayer::ChangeClass(WavePlayerClass newClass) {
@@ -8893,7 +8895,7 @@ void idPlayer::AdjustSpeed( void ) {
 		bobFrac = 0.0f;
  	} else if ( !physicsObj.OnLadder() && ( usercmd.buttons & BUTTON_RUN ) && ( usercmd.forwardmove || usercmd.rightmove ) && ( usercmd.upmove >= 0 ) ) {
 		bobFrac = 1.0f;
-		speed = (pm_speed.GetFloat() * wvSpeedMult * (inBerserk ? 2.0f : 1.0f) * (1+.1*wvSpeedMultLvl));
+		speed = (pm_speed.GetFloat() * wvSpeedMult * (inBerserk ? 2.0f : 1.0f) * (1+.2*wvSpeedMultLvl));
 	} else {
 		speed = pm_walkspeed.GetFloat();
 		bobFrac = 0.0f;
@@ -9112,7 +9114,7 @@ void idPlayer::Move( void ) {
 
 	// set physics variables
 	physicsObj.SetMaxStepHeight( pm_stepsize.GetFloat() );
-	physicsObj.SetMaxJumpHeight( pm_jumpheight.GetFloat() * wvJumpMult * (inBerserk ? 2.0f : 1.0f) * (1 + .1 * wvSpeedMultLvl));
+	physicsObj.SetMaxJumpHeight( pm_jumpheight.GetFloat() * wvJumpMult * (inBerserk ? 2.0f : 1.0f) * (1 + .2 * wvJumpMultLvl));
 
 	if ( noclip ) {
 		physicsObj.SetContents( 0 );
@@ -9216,7 +9218,7 @@ void idPlayer::Move( void ) {
 		loggedAccel_t	*acc = &loggedAccel[currentLoggedAccel&(NUM_LOGGED_ACCELS-1)];
 		currentLoggedAccel++;
 		acc->time = gameLocal.time;
-		acc->dir[2] = 200*wvJumpMult;
+		acc->dir[2] = 200*wvJumpMult*wvJumpMultLvl;
 		acc->dir[0] = acc->dir[1] = 0;
 	}
 

@@ -3689,7 +3689,7 @@ void idAI::OnDeath( void ){
 	switch (gameLocal.GetLocalPlayer()->wvPlayerClass) {
 	case MEDIC:
 		//drop medic item
-		if (rVal < 90) {
+		if (rVal < 50) {
 			spawnArgs.Set("def_dropsItem1", "item_health_small_moveable");
 		}
 		else {
@@ -3699,7 +3699,7 @@ void idAI::OnDeath( void ){
 
 	case HEAVY:
 		//drop heavy item
-		if (rVal < 90) {
+		if (rVal < 50) {
 			spawnArgs.Set("def_dropsItem1", "item_health_small_moveable");
 		}
 		else {
@@ -3709,7 +3709,7 @@ void idAI::OnDeath( void ){
 
 	case LIGHT:
 		//drop light item
-		if (rVal < 90) {
+		if (rVal < 50) {
 			spawnArgs.Set("def_dropsItem1", "item_health_small_moveable");
 		}
 		else {
