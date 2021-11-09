@@ -45,7 +45,7 @@ To activate the berserk ability for the Heavy class, use the L key.
 	- High Walk Speed
  
  - Different Weapons on Spawn
-	- Hyperblaster
+	- Regular Blaster
 
  - Special Ability
 	- Double Jump
