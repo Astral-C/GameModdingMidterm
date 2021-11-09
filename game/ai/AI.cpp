@@ -3703,7 +3703,7 @@ void idAI::OnDeath( void ){
 			spawnArgs.Set("def_dropsItem1", "item_health_small_moveable");
 		}
 		else {
-			spawnArgs.Set("def_dropsItem1", "ammo_default");
+			spawnArgs.Set("def_dropsItem1", "ammo_currentweapon");
 		}
 		break;
 
